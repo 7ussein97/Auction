@@ -1,0 +1,166 @@
+@model Auction.Models.AuctionItem
+@{
+    ViewData["Title"] = "Edit Auction";
+}
+
+<div class="row mb-4">
+    <div class="col-12 text-center">
+        <h1 class="display-4 mb-3">
+            <i class="fas fa-edit text-info me-3"></i>
+            Edit Auction
+        </h1>
+        <p class="lead">Update auction details and information</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow">
+            <div class="card-header text-white" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+                <h3 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>Edit Auction: @Model.Name
+                </h3>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="Edit" method="post" enctype="multipart/form-data">
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="CreatedByUserId" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Please correct the errors below
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-4">
+                            <label asp-for="Name" class="form-label fw-bold">
+                                <i class="fas fa-tag me-2 text-primary"></i>Item Name <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Name" class="form-control form-control-lg" placeholder="Enter item name" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-12 mb-4">
+                            <label asp-for="Description" class="form-label fw-bold">
+                                <i class="fas fa-align-left me-2 text-primary"></i>Description
+                            </label>
+                            <textarea asp-for="Description" class="form-control" rows="5" placeholder="Enter item description"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label for="mainImage" class="form-label fw-bold">
+                                <i class="fas fa-image me-2 text-primary"></i>Main Image
+                            </label>
+                            <input type="file" id="mainImage" name="mainImage" class="form-control" accept="image/*" />
+                            <small class="form-text text-muted mt-1">
+                                <i class="fas fa-info-circle me-1"></i>Leave empty to keep current image
+                            </small>
+                            @if (!string.IsNullOrEmpty(Model.ImagePath))
+                            {
+                                <div class="mt-3 p-3 rounded" style="background: #f8f9fa;">
+                                    <small class="text-muted d-block mb-2">Current image:</small>
+                                    <img src="@Model.ImagePath" alt="Current image" class="img-thumbnail" style="max-height: 150px;" />
+                                </div>
+                            }
+                        </div>
+
+                        <div class="col-md-6 mb-4">
+                            <label for="additionalImages" class="form-label fw-bold">
+                                <i class="fas fa-images me-2 text-primary"></i>Additional Images
+                            </label>
+                            <input type="file" id="additionalImages" name="additionalImages" class="form-control" accept="image/*" multiple />
+                            <small class="form-text text-muted mt-1">
+                                <i class="fas fa-info-circle me-1"></i>Upload additional images (existing images will be kept)
+                            </small>
+                            @if (Model.Images != null && Model.Images.Any())
+                            {
+                                <div class="mt-3">
+                                    <small class="text-muted d-block mb-2">Current additional images:</small>
+                                    <div class="row g-2">
+                                        @foreach (var img in Model.Images)
+                                        {
+                                            <div class="col-4">
+                                                <img src="@img.ImagePath" class="img-thumbnail" style="max-height: 80px; width: 100%; object-fit: cover;" />
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label asp-for="MinimumPrice" class="form-label fw-bold">
+                                <i class="fas fa-money-bill-wave me-2 text-primary"></i>Minimum Price (OMR)
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light">
+                                    <i class="fas fa-coins text-primary"></i>
+                                </span>
+                                <input asp-for="MinimumPrice" class="form-control" type="number" step="0.01" min="0" placeholder="0.00" />
+                            </div>
+                            <span asp-validation-for="MinimumPrice" class="text-danger"></span>
+                            <small class="form-text text-muted mt-1">
+                                <i class="fas fa-info-circle me-1"></i>Starting bid amount in Omani Rial
+                            </small>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label asp-for="StartTime" class="form-label fw-bold">
+                                <i class="fas fa-play-circle me-2 text-success"></i>Start Time <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="StartTime" class="form-control form-control-lg" type="datetime-local" value="@Model.StartTime.ToString("yyyy-MM-ddTHH:mm")" />
+                            <span asp-validation-for="StartTime" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6 mb-4">
+                            <label asp-for="EndTime" class="form-label fw-bold">
+                                <i class="fas fa-stop-circle me-2 text-warning"></i>End Time <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="EndTime" class="form-control form-control-lg" type="datetime-local" value="@Model.EndTime.ToString("yyyy-MM-ddTHH:mm")" />
+                            <span asp-validation-for="EndTime" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="p-3 rounded" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+                            <div class="form-check form-switch">
+                                <input asp-for="IsActive" class="form-check-input" type="checkbox" id="isActiveSwitch" />
+                                <label class="form-check-label fw-bold" for="isActiveSwitch">
+                                    <i class="fas fa-toggle-on me-2"></i>Active Auction
+                                </label>
+                            </div>
+                            <small class="form-text text-muted mt-2 d-block">
+                                <i class="fas fa-info-circle me-1"></i>Uncheck to deactivate this auction
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a asp-action="Details" asp-controller="Auction" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-lg me-md-2">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-info btn-lg">
+                            <i class="fas fa-save me-2"></i>Update Auction
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+

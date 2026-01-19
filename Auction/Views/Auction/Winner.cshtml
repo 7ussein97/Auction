@@ -1,0 +1,247 @@
+@model Auction.Models.AuctionItem
+@{
+    ViewData["Title"] = "Auction Winner";
+    var winnerBid = ViewBag.WinnerBid as Auction.Models.Bid;
+    var highestBid = Model.Bids?.OrderByDescending(b => b.Amount).FirstOrDefault();
+    var imagePath = !string.IsNullOrEmpty(Model.ImagePath) 
+        ? Model.ImagePath 
+        : (Model.Images?.FirstOrDefault()?.ImagePath ?? "https://via.placeholder.com/800x600?text=No+Image");
+    
+    // Permission checks
+    var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+    var currentUserId = userIdClaim != null && int.TryParse(userIdClaim.Value, out int uid) ? uid : 0;
+    var isAdmin = User.IsInRole("Admin");
+    var isCreator = User.IsInRole("AuctionCreator") && Model.CreatedByUserId == currentUserId;
+    var canManage = isAdmin || isCreator;
+    var isClosed = !Model.IsActive && DateTime.Now > Model.EndTime;
+}
+
+<div class="row mb-4">
+    <div class="col-12 text-center">
+        <h1 class="display-4 mb-3">
+            <i class="fas fa-trophy text-warning me-3"></i>
+            Auction Winner
+        </h1>
+        <p class="lead">Congratulations to the winning bidder!</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow mb-4">
+            <img src="@imagePath" class="card-img-top" alt="@Model.Name" style="max-height: 400px; object-fit: cover;" onerror="this.onerror=null; this.src='https://via.placeholder.com/800x600?text=No+Image'">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <i class="fas fa-tag me-2 text-primary"></i>@Model.Name
+                </h2>
+                <hr />
+                <div class="mb-4">
+                    <h5 class="d-flex align-items-center mb-3">
+                        <i class="fas fa-align-left me-2 text-primary"></i>Description
+                    </h5>
+                    <p class="text-muted mb-0">@(string.IsNullOrEmpty(Model.Description) ? "<em><i class='fas fa-info-circle me-1'></i>No description available</em>" : Model.Description)</p>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                        <div class="p-3 rounded" style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-play-circle me-2 text-primary"></i>
+                                <small class="text-muted">Start Time</small>
+                            </div>
+                            <strong>@Model.StartTime.ToString("MMM dd, yyyy HH:mm")</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="p-3 rounded" style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-stop-circle me-2 text-warning"></i>
+                                <small class="text-muted">End Time</small>
+                            </div>
+                            <strong>@Model.EndTime.ToString("MMM dd, yyyy HH:mm")</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="p-3 rounded d-flex align-items-center" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);">
+                        <i class="fas fa-user-tie me-3 text-success fa-lg"></i>
+                        <div>
+                            <small class="text-muted d-block">Created By</small>
+                            <strong>@(Model.CreatedByUser?.Name ?? "Unknown")</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow sticky-top" style="top: 20px;">
+            <div class="card-header text-white" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                <h4 class="mb-0">
+                    <i class="fas fa-trophy me-2"></i>Auction Winner
+                </h4>
+            </div>
+            <div class="card-body">
+                @if (winnerBid != null && highestBid != null)
+                {
+                    <div class="text-center mb-4">
+                        <div class="mb-3">
+                            <i class="fas fa-trophy fa-4x" style="color: #ffd700;"></i>
+                        </div>
+                        <h3 class="text-success mb-2">
+                            <i class="fas fa-crown me-2"></i>@(winnerBid.User?.Name ?? "Unknown")
+                        </h3>
+                        <p class="text-muted mb-3">Winner</p>
+                        <div class="p-4 rounded mb-3" style="background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);">
+                            <h2 class="text-primary mb-0">
+                                <i class="fas fa-money-bill-wave me-2"></i>@winnerBid.Amount.ToString("N2") OMR
+                            </h2>
+                            <small class="text-muted">Winning Bid Amount</small>
+                        </div>
+                    </div>
+                    
+                    <hr />
+                    
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                            <small class="text-muted">Bid Placed</small>
+                        </div>
+                        <strong>@winnerBid.CreatedAt.ToString("MMM dd, yyyy HH:mm")</strong>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-envelope me-2 text-primary"></i>
+                            <small class="text-muted">Winner Email</small>
+                        </div>
+                        <strong>@(winnerBid.User?.Email ?? "Not available")</strong>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-gavel me-2 text-primary"></i>
+                            <small class="text-muted">Total Bids</small>
+                        </div>
+                        <strong>@(Model.Bids?.Count ?? 0)</strong>
+                    </div>
+                    
+                    @if (canManage && !isClosed)
+                    {
+                        <hr />
+                        <form asp-action="CloseCase" asp-controller="Auction" method="post">
+                            <input type="hidden" name="auctionItemId" value="@Model.Id" />
+                            <button type="submit" class="btn btn-primary w-100" onclick="return confirm('Are you sure you want to close this case? This action cannot be undone.');">
+                                <i class="fas fa-lock me-2"></i>Close Case
+                            </button>
+                        </form>
+                    }
+                    else if (isClosed)
+                    {
+                        <div class="alert alert-success text-center">
+                            <i class="fas fa-check-circle fa-2x mb-2"></i>
+                            <strong>Case Status:</strong> Closed
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="alert alert-warning text-center">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <h5>No Winner</h5>
+                        <p class="mb-0">This auction ended with no bids.</p>
+                    </div>
+                }
+                
+                <hr />
+                
+                <div class="mt-3">
+                    <a asp-action="Details" asp-controller="Auction" asp-route-id="@Model.Id" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Details
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header text-white" style="background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);">
+                <h4 class="mb-0">
+                    <i class="fas fa-list-ol me-2"></i>All Bids
+                    @if (Model.Bids != null && Model.Bids.Any())
+                    {
+                        <span class="badge bg-light text-dark ms-2">@Model.Bids.Count() @(Model.Bids.Count() == 1 ? "bid" : "bids")</span>
+                    }
+                </h4>
+            </div>
+            <div class="card-body">
+                @if (Model.Bids == null || !Model.Bids.Any())
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted mb-0">No bids were placed on this auction.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-medal me-1"></i>Rank</th>
+                                    <th><i class="fas fa-user me-1"></i>Bidder</th>
+                                    <th><i class="fas fa-money-bill-wave me-1"></i>Amount</th>
+                                    <th><i class="fas fa-clock me-1"></i>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    int rank = 1;
+                                }
+                                @foreach (var bid in Model.Bids.OrderByDescending(b => b.Amount))
+                                {
+                                    <tr class="@(bid.Id == winnerBid?.Id ? "table-success fw-bold" : "")">
+                                        <td>
+                                            @if (rank == 1)
+                                            {
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="fas fa-crown me-1"></i>@rank
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">@rank</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <i class="fas fa-user-circle me-2 text-muted"></i>
+                                            @(bid.User?.Name ?? "Unknown")
+                                            @if (bid.Id == winnerBid?.Id)
+                                            {
+                                                <span class="badge bg-success ms-2"><i class="fas fa-trophy me-1"></i>Winner</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <strong class="text-primary">@bid.Amount.ToString("N2") OMR</strong>
+                                        </td>
+                                        <td>
+                                            <i class="fas fa-calendar-alt me-1 text-muted"></i>
+                                            @bid.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                                        </td>
+                                    </tr>
+                                    rank++;
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+

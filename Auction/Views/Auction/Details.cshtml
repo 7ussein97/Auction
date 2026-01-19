@@ -1,0 +1,628 @@
+@model Auction.Models.AuctionItem
+@{
+    ViewData["Title"] = "Auction Details";
+    var highestBid = Model.Bids?.OrderByDescending(b => b.Amount).FirstOrDefault();
+    var currentBid = highestBid?.Amount ?? Model.MinimumPrice ?? 0;
+    var imagePath = !string.IsNullOrEmpty(Model.ImagePath) 
+        ? Model.ImagePath 
+        : (Model.Images?.FirstOrDefault()?.ImagePath ?? "https://via.placeholder.com/800x600?text=No+Image");
+    var timeRemaining = Model.EndTime - DateTime.Now;
+    var isActive = Model.IsActive && DateTime.Now >= Model.StartTime && DateTime.Now <= Model.EndTime;
+    var canBid = User.Identity.IsAuthenticated && isActive && (User.IsInRole("Bidder") || User.IsInRole("Admin"));
+    
+    // Permission checks for Admin and Creator
+    var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+    var currentUserId = userIdClaim != null && int.TryParse(userIdClaim.Value, out int uid) ? uid : 0;
+    var isAdmin = User.IsInRole("Admin");
+    var isCreator = User.IsInRole("AuctionCreator") && Model.CreatedByUserId == currentUserId;
+    var canManage = isAdmin || isCreator;
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-action="Index" asp-controller="Home"><i class="fas fa-home me-1"></i>Home</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index" asp-controller="Auction"><i class="fas fa-list me-1"></i>Auctions</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow mb-4">
+            <div class="position-relative">
+                <img src="@imagePath" class="card-img-top" alt="@Model.Name" style="max-height: 500px; object-fit: cover;" onerror="this.onerror=null; this.src='https://via.placeholder.com/800x600?text=No+Image'">
+                @if (isActive)
+                {
+                    <div class="position-absolute top-0 end-0 m-3">
+                        <span class="badge bg-success rounded-pill px-3 py-2">
+                            <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>Live Auction
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    <div class="position-absolute top-0 end-0 m-3">
+                        <span class="badge bg-secondary rounded-pill px-3 py-2">
+                            <i class="fas fa-hourglass-end me-1"></i>@(DateTime.Now < Model.StartTime ? "Upcoming" : "Ended")
+                        </span>
+                    </div>
+                }
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h2 class="card-title mb-0">
+                        <i class="fas fa-tag me-2 text-primary"></i>@Model.Name
+                    </h2>
+                    @if (isAdmin)
+                    {
+                        <div class="btn-group">
+                            <a asp-action="Edit" asp-controller="Auction" asp-route-id="@Model.Id" class="btn btn-sm btn-info">
+                                <i class="fas fa-edit me-1"></i>Edit
+                            </a>
+                            <form asp-action="Delete" asp-controller="Auction" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@Model.Id" />
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this auction? This will delete all bids and cannot be undone.');">
+                                    <i class="fas fa-trash me-1"></i>Delete
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </div>
+                
+                <hr />
+                
+                <div class="mb-4">
+                    <h5 class="d-flex align-items-center mb-3">
+                        <i class="fas fa-align-left me-2 text-primary"></i>Description
+                    </h5>
+                    <p class="text-muted mb-0">@(string.IsNullOrEmpty(Model.Description) ? "<em><i class='fas fa-info-circle me-1'></i>No description available</em>" : Model.Description)</p>
+                </div>
+                
+                @if (Model.Images != null && Model.Images.Count > 1)
+                {
+                    <div class="mb-4">
+                        <h5 class="d-flex align-items-center mb-3">
+                            <i class="fas fa-images me-2 text-primary"></i>Additional Images
+                        </h5>
+                        <div class="row g-2">
+                            @foreach (var image in Model.Images.Skip(1))
+                            {
+                                <div class="col-md-3 col-6">
+                                    <img src="@image.ImagePath" class="img-thumbnail rounded" alt="Auction image" style="height: 150px; width: 100%; object-fit: cover; cursor: pointer;" onclick="window.open('@image.ImagePath', '_blank')" onerror="this.style.display='none'">
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                        <div class="p-3 rounded" style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-play-circle me-2 text-primary"></i>
+                                <small class="text-muted">Start Time</small>
+                            </div>
+                            <strong>@Model.StartTime.ToString("MMM dd, yyyy HH:mm")</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="p-3 rounded" style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-stop-circle me-2 text-warning"></i>
+                                <small class="text-muted">End Time</small>
+                            </div>
+                            <strong>@Model.EndTime.ToString("MMM dd, yyyy HH:mm")</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="p-3 rounded d-flex align-items-center" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);">
+                        <i class="fas fa-user-tie me-3 text-success fa-lg"></i>
+                        <div>
+                            <small class="text-muted d-block">Created By</small>
+                            <strong>@(Model.CreatedByUser?.Name ?? "Unknown")</strong>
+                        </div>
+                    </div>
+                </div>
+
+                @if (isActive)
+                {
+                    <div class="alert alert-info d-flex align-items-center mb-3">
+                        <i class="fas fa-info-circle me-3 fa-2x"></i>
+                        <div class="flex-grow-1">
+                            <strong>Status: Active</strong>
+                            <div class="mt-1">
+                                @if (timeRemaining.TotalDays > 1)
+                                {
+                                    <span><i class="fas fa-clock me-1"></i>Ends in <strong>@((int)timeRemaining.TotalDays)</strong> days</span>
+                                }
+                                else if (timeRemaining.TotalHours > 1)
+                                {
+                                    <span><i class="fas fa-clock me-1"></i>Ends in <strong>@((int)timeRemaining.TotalHours)</strong> hours</span>
+                                }
+                                else if (timeRemaining.TotalMinutes > 0)
+                                {
+                                    <span class="text-warning fw-bold"><i class="fas fa-exclamation-triangle me-1"></i>Ends in <strong>@((int)timeRemaining.TotalMinutes)</strong> minutes!</span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-1"></i>Ending now!</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    
+                    @if (canManage)
+                    {
+                        <div class="mb-3">
+                            <form asp-action="EndAuction" asp-controller="Auction" method="post" class="d-inline">
+                                <input type="hidden" name="auctionItemId" value="@Model.Id" />
+                                <button type="submit" class="btn btn-warning" onclick="return confirm('Are you sure you want to end this auction?');">
+                                    <i class="fas fa-stop me-2"></i>End Auction Now
+                                </button>
+                            </form>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="alert alert-warning d-flex align-items-center mb-3">
+                        <i class="fas fa-exclamation-triangle me-3 fa-2x"></i>
+                        <div>
+                            <strong>Status:</strong> @(DateTime.Now < Model.StartTime ? "Not Started Yet" : "Ended")
+                        </div>
+                    </div>
+                    
+                    @if (canManage && !isActive && DateTime.Now >= Model.StartTime)
+                    {
+                        <div class="mb-3">
+                            <a asp-action="Winner" asp-controller="Auction" asp-route-id="@Model.Id" class="btn btn-success">
+                                <i class="fas fa-trophy me-2"></i>View Winner
+                            </a>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-header" style="background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);">
+                <h4 class="mb-0 text-white">
+                    <i class="fas fa-history me-2"></i>Bid History
+                    @if (Model.Bids != null && Model.Bids.Any())
+                    {
+                        <span class="badge bg-light text-dark ms-2">@Model.Bids.Count() @(Model.Bids.Count() == 1 ? "bid" : "bids")</span>
+                    }
+                </h4>
+            </div>
+            <div class="card-body">
+                @if (Model.Bids == null || !Model.Bids.Any())
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-gavel fa-3x text-muted mb-3"></i>
+                        <p class="text-muted mb-0">No bids yet. Be the first to bid!</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-user me-1"></i>Bidder</th>
+                                    <th><i class="fas fa-money-bill-wave me-1"></i>Amount</th>
+                                    <th><i class="fas fa-clock me-1"></i>Time</th>
+                                    @if (canManage)
+                                    {
+                                        <th><i class="fas fa-cog me-1"></i>Actions</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody id="bidsTableBody">
+                                @foreach (var bid in Model.Bids.OrderByDescending(b => b.Amount))
+                                {
+                                    <tr class="@(bid.Id == highestBid?.Id ? "table-success fw-bold" : "")" data-bid-id="@bid.Id">
+                                        <td>
+                                            <i class="fas fa-user-circle me-2 text-muted"></i>
+                                            @(bid.User?.Name ?? "Unknown")
+                                            @if (bid.Id == highestBid?.Id)
+                                            {
+                                                <span class="badge bg-success ms-2"><i class="fas fa-crown me-1"></i>Highest</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <strong class="text-primary">@bid.Amount.ToString("N2") OMR</strong>
+                                        </td>
+                                        <td>
+                                            <i class="fas fa-calendar-alt me-1 text-muted"></i>
+                                            @bid.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                                        </td>
+                                        @if (canManage)
+                                        {
+                                            <td>
+                                                <form asp-action="DeleteBid" asp-controller="Auction" method="post" class="d-inline">
+                                                    <input type="hidden" name="bidId" value="@bid.Id" />
+                                                    <input type="hidden" name="auctionItemId" value="@Model.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this bid?');">
+                                                        <i class="fas fa-trash me-1"></i>Delete
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow sticky-top" style="top: 20px;">
+            <div class="card-header text-white" style="background: linear-gradient(135deg, #1a237e 0%, #3949ab 100%);">
+                <h4 class="mb-0">
+                    <i class="fas fa-gavel me-2"></i>Bidding
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="mb-4 p-4 rounded text-center" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+                    <small class="text-muted d-block mb-2" id="bidLabel">
+                        <i class="fas fa-info-circle me-1"></i>@(highestBid != null ? "Current Highest Bid" : "Minimum Price")
+                    </small>
+                    <h2 class="text-primary mb-0" id="currentBidDisplay">
+                        <i class="fas fa-money-bill-wave me-2"></i>@currentBid.ToString("N2") OMR
+                    </h2>
+                    @if (isActive && highestBid != null)
+                    {
+                        <small class="text-success mt-2 d-block">
+                            <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>Live Auction
+                        </small>
+                    }
+                </div>
+
+                @if (canBid)
+                {
+                    <form id="bidForm" asp-action="PlaceBid" asp-controller="Auction" method="post" onsubmit="return false;">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="auctionItemId" value="@Model.Id" />
+                        <div class="mb-3">
+                            <label for="bidAmount" class="form-label fw-bold">
+                                <i class="fas fa-hand-holding-usd me-1"></i>Your Bid (OMR)
+                            </label>
+                            <input type="number" id="bidAmount" name="bidAmount" class="form-control form-control-lg" step="0.01" min="@((currentBid + 0.01m).ToString("F2"))" value="@((currentBid + 1m).ToString("F2"))" required />
+                            <small class="form-text text-muted mt-1">
+                                <i class="fas fa-info-circle me-1"></i>Minimum bid: <span id="minBidDisplay" class="fw-bold">@((currentBid + 0.01m).ToString("N2"))</span> OMR
+                            </small>
+                        </div>
+                        <button type="button" id="bidSubmitBtn" class="btn btn-primary w-100 btn-lg">
+                            <span id="bidBtnText">
+                                <i class="fas fa-gavel me-2"></i>Place Bid
+                            </span>
+                            <span id="bidBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        </button>
+                    </form>
+                    <div id="bidMessage" class="mt-3"></div>
+                }
+                else if (!User.Identity.IsAuthenticated)
+                {
+                    <div class="alert alert-warning text-center">
+                        <i class="fas fa-lock fa-2x mb-2"></i>
+                        <p class="mb-2">Please login to place a bid</p>
+                        <a asp-controller="Login" asp-action="Index" class="btn btn-primary btn-sm">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login Now
+                        </a>
+                    </div>
+                }
+                else if (!isActive)
+                {
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-hourglass-end fa-2x mb-2"></i>
+                        <p class="mb-0">This auction is @(DateTime.Now < Model.StartTime ? "not started yet" : "ended").</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning text-center">
+                        <i class="fas fa-user-shield fa-2x mb-2"></i>
+                        <p class="mb-0">Only bidders can place bids on this auction.</p>
+                    </div>
+                }
+
+                <hr />
+
+                <div class="mt-3">
+                    <a asp-action="Index" asp-controller="Home" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Auctions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const bidForm = document.getElementById('bidForm');
+            const bidInput = document.getElementById('bidAmount');
+            const bidSubmitBtn = document.getElementById('bidSubmitBtn');
+            const bidBtnText = document.getElementById('bidBtnText');
+            const bidBtnSpinner = document.getElementById('bidBtnSpinner');
+            const bidMessage = document.getElementById('bidMessage');
+            const currentBidDisplay = document.getElementById('currentBidDisplay');
+            const bidLabel = document.getElementById('bidLabel');
+            const minBidDisplay = document.getElementById('minBidDisplay');
+            const bidsTableBody = document.getElementById('bidsTableBody');
+            
+            // SignalR Connection for Live Bidding
+            const auctionId = @Model.Id;
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/auctionHub")
+                .withAutomaticReconnect()
+                .build();
+
+            // Function to update the UI with new bid data
+            function updateBidDisplay(bidData) {
+                if (currentBidDisplay) {
+                    currentBidDisplay.innerHTML = `<i class="fas fa-money-bill-wave me-2"></i>${bidData.currentBid} OMR`;
+                }
+                if (bidLabel) {
+                    bidLabel.textContent = 'Current Highest Bid';
+                }
+                
+                // Update minimum bid
+                const newMinBid = parseFloat(bidData.minimumNextBid);
+                if (minBidDisplay) {
+                    minBidDisplay.textContent = bidData.minimumNextBid;
+                }
+                if (bidInput) {
+                    bidInput.setAttribute('min', newMinBid.toFixed(2));
+                    const currentValue = parseFloat(bidInput.value) || 0;
+                    if (currentValue <= newMinBid) {
+                        bidInput.value = (newMinBid + 1).toFixed(2);
+                    }
+                }
+
+                // Update bids table
+                if (bidsTableBody && bidData.bids) {
+                    bidsTableBody.innerHTML = '';
+                    bidData.bids.forEach(function(bid) {
+                        const row = document.createElement('tr');
+                        if (bid.isHighest) {
+                            row.classList.add('table-success', 'fw-bold');
+                        }
+                        row.setAttribute('data-bid-id', bid.id);
+                        
+                        let rowHtml = `
+                            <td>
+                                <i class="fas fa-user-circle me-2 text-muted"></i>
+                                ${bid.bidderName}
+                                ${bid.isHighest ? '<span class="badge bg-success ms-2"><i class="fas fa-crown me-1"></i>Highest</span>' : ''}
+                            </td>
+                            <td><strong class="text-primary">${bid.amount} OMR</strong></td>
+                            <td><i class="fas fa-calendar-alt me-1 text-muted"></i>${bid.time}</td>
+                        `;
+                        
+                        @if (canManage)
+                        {
+                            <text>
+                            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+                            rowHtml += `
+                                <td>
+                                    <form action="@Url.Action("DeleteBid", "Auction")" method="post" class="d-inline">
+                                        <input type="hidden" name="bidId" value="${bid.id}" />
+                                        <input type="hidden" name="auctionItemId" value="@Model.Id" />
+                                        <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this bid?');">
+                                            <i class="fas fa-trash me-1"></i>Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            `;
+                            </text>
+                        }
+                        
+                        row.innerHTML = rowHtml;
+                        bidsTableBody.appendChild(row);
+                    });
+                }
+            }
+
+            // Listen for BidPlaced event from SignalR
+            connection.on("BidPlaced", function (bidData) {
+                if (bidData.auctionId === auctionId) {
+                    // Show notification that someone else placed a bid
+                    const notification = document.createElement('div');
+                    notification.className = 'alert alert-info alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+                    notification.style.zIndex = '9999';
+                    notification.style.minWidth = '300px';
+                    notification.innerHTML = `
+                        <i class="fas fa-bell me-2"></i>
+                        <strong>New Bid!</strong> ${bidData.bidderName} placed a bid of ${bidData.bidAmount} OMR
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(notification);
+                    
+                    // Auto-dismiss notification after 5 seconds
+                    setTimeout(() => {
+                        const bsAlert = new bootstrap.Alert(notification);
+                        bsAlert.close();
+                    }, 5000);
+                    
+                    // Update the UI
+                    updateBidDisplay(bidData);
+                }
+            });
+
+            // Start SignalR connection
+            connection.start()
+                .then(function () {
+                    console.log("SignalR Connected");
+                    // Join the auction group
+                    connection.invoke("JoinAuctionGroup", auctionId)
+                        .then(function () {
+                            console.log("Joined auction group:", auctionId);
+                        })
+                        .catch(function (err) {
+                            console.error("Error joining group:", err);
+                        });
+                })
+                .catch(function (err) {
+                    console.error("SignalR Connection Error:", err);
+                });
+
+            // Handle reconnection
+            connection.onreconnecting(function () {
+                console.log("SignalR Reconnecting...");
+            });
+
+            connection.onreconnected(function () {
+                console.log("SignalR Reconnected");
+                // Rejoin the auction group after reconnection
+                connection.invoke("JoinAuctionGroup", auctionId)
+                    .catch(function (err) {
+                        console.error("Error rejoining group:", err);
+                    });
+            });
+
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', function () {
+                connection.invoke("LeaveAuctionGroup", auctionId)
+                    .catch(function (err) {
+                        console.error("Error leaving group:", err);
+                    });
+                connection.stop();
+            });
+
+            if (bidForm && bidSubmitBtn) {
+                // Use button click instead of form submit to prevent page reload
+                bidSubmitBtn.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Validate form
+                    if (!bidForm.checkValidity()) {
+                        bidForm.reportValidity();
+                        return;
+                    }
+                    
+                    // Disable form during submission
+                    bidSubmitBtn.disabled = true;
+                    bidBtnText.textContent = 'Placing Bid...';
+                    bidBtnSpinner.classList.remove('d-none');
+                    bidMessage.innerHTML = '';
+
+                    const formData = new FormData(bidForm);
+                    const auctionItemId = formData.get('auctionItemId');
+                    const bidAmount = parseFloat(formData.get('bidAmount'));
+
+                    try {
+                        // Get anti-forgery token from form
+                        const tokenInput = bidForm.querySelector('input[name="__RequestVerificationToken"]');
+                        const token = tokenInput ? tokenInput.value : null;
+                        
+                        if (!token) {
+                            console.error('Anti-forgery token not found');
+                            bidMessage.innerHTML = '<div class="alert alert-danger">Security token not found. Please refresh the page.</div>';
+                            bidSubmitBtn.disabled = false;
+                            bidBtnText.textContent = 'Place Bid';
+                            bidBtnSpinner.classList.add('d-none');
+                            return;
+                        }
+                        
+                        const response = await fetch('@Url.Action("PlaceBid", "Auction")', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: new URLSearchParams({
+                                auctionItemId: auctionItemId,
+                                bidAmount: bidAmount,
+                                __RequestVerificationToken: token
+                            })
+                        });
+
+                        if (!response.ok) {
+                            // Check if it's a redirect (which would cause reload)
+                            if (response.redirected || response.status === 302 || response.status === 301) {
+                                throw new Error('Server redirected. Please check your authentication.');
+                            }
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        // Check content type to ensure it's JSON
+                        const contentType = response.headers.get("content-type");
+                        if (!contentType || !contentType.includes("application/json")) {
+                            const text = await response.text();
+                            console.error('Non-JSON response:', text);
+                            throw new Error('Server returned non-JSON response. Please refresh the page.');
+                        }
+
+                        const data = await response.json();
+                        
+                        if (!data || typeof data !== 'object') {
+                            throw new Error('Invalid response from server');
+                        }
+
+                        if (data.success) {
+                            // Update UI with the response data
+                            updateBidDisplay({
+                                currentBid: data.currentBid,
+                                minimumNextBid: data.minimumNextBid,
+                                bids: data.bids
+                            });
+
+                            // Show success message
+                            bidMessage.innerHTML = '<div class="alert alert-success alert-dismissible fade show" role="alert">' + 
+                                '<i class="fas fa-check-circle me-2"></i>' + data.message + 
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+                            
+                            // Auto-dismiss message after 3 seconds
+                            setTimeout(() => {
+                                const alert = bidMessage.querySelector('.alert');
+                                if (alert) {
+                                    const bsAlert = new bootstrap.Alert(alert);
+                                    bsAlert.close();
+                                }
+                            }, 3000);
+                            
+                            // Note: SignalR will broadcast this update to all other users automatically
+                        } else {
+                            // Show error message
+                            bidMessage.innerHTML = '<div class="alert alert-danger alert-dismissible fade show" role="alert">' + data.message + 
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        bidMessage.innerHTML = '<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
+                            'An error occurred: ' + (error.message || 'Please try again.') +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+                    } finally {
+                        // Re-enable form
+                        bidSubmitBtn.disabled = false;
+                        bidBtnText.textContent = 'Place Bid';
+                        bidBtnSpinner.classList.add('d-none');
+                    }
+                });
+            } else {
+                // If form doesn't exist, log for debugging
+                console.log('Bid form or submit button not found');
+            }
+
+            // Set minimum bid amount dynamically
+            if (bidInput) {
+                const minBid = @((currentBid + 0.01m).ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
+                bidInput.setAttribute('min', minBid);
+            }
+        });
+    </script>
+}
+

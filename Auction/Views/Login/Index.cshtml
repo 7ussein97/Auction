@@ -1,0 +1,165 @@
+@model Auction.Dto.UserDto
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="row mb-4">
+    <div class="col-12 text-center">
+        <h1 class="display-4 mb-3">
+            <i class="fas fa-user-circle text-primary me-3"></i>
+            Welcome Back
+        </h1>
+        <p class="lead">Login to your account or create a new one to start bidding</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="row g-4">
+            <!-- Login Form -->
+            <div class="col-md-6">
+                <div class="card shadow h-100">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #1a237e 0%, #3949ab 100%);">
+                        <h3 class="mb-0">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </h3>
+                    </div>
+                    <div class="card-body p-4">
+                        <form asp-action="SignIn" method="post">
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Please correct the errors below
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="Email" class="form-label fw-bold">
+                                    <i class="fas fa-envelope me-2 text-primary"></i>Email <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-at text-primary"></i>
+                                    </span>
+                                    <input asp-for="Email" class="form-control" type="email" placeholder="Enter your email" />
+                                </div>
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="Password" class="form-label fw-bold">
+                                    <i class="fas fa-lock me-2 text-primary"></i>Password <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-key text-primary"></i>
+                                    </span>
+                                    <input asp-for="Password" class="form-control" type="password" placeholder="Enter your password" />
+                                </div>
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Login
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sign Up Form -->
+            <div class="col-md-6">
+                <div class="card shadow h-100">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                        <h3 class="mb-0">
+                            <i class="fas fa-user-plus me-2"></i>Create Account
+                        </h3>
+                    </div>
+                    <div class="card-body p-4">
+                        <form asp-action="SignUp" method="post">
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Please correct the errors below
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Name" class="form-label fw-bold">
+                                    <i class="fas fa-user me-2 text-primary"></i>Name <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-id-card text-primary"></i>
+                                    </span>
+                                    <input asp-for="Name" class="form-control" placeholder="Enter your name" />
+                                </div>
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Email" class="form-label fw-bold">
+                                    <i class="fas fa-envelope me-2 text-primary"></i>Email <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-at text-primary"></i>
+                                    </span>
+                                    <input asp-for="Email" class="form-control" type="email" placeholder="Enter your email" />
+                                </div>
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Password" class="form-label fw-bold">
+                                    <i class="fas fa-lock me-2 text-primary"></i>Password <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-key text-primary"></i>
+                                    </span>
+                                    <input asp-for="Password" class="form-control" type="password" placeholder="Enter your password" />
+                                </div>
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                                <small class="form-text text-muted mt-1">
+                                    <i class="fas fa-info-circle me-1"></i>Must contain uppercase, lowercase, number, and special character (min 8 characters)
+                                </small>
+                            </div>
+
+                            <input type="hidden" asp-for="Role" value="Bidder" />
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-user-tag me-2 text-primary"></i>Role
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-badge text-primary"></i>
+                                    </span>
+                                    <input type="text" class="form-control" value="Bidder" disabled />
+                                </div>
+                                <small class="form-text text-muted mt-1">
+                                    <i class="fas fa-info-circle me-1"></i>New users are automatically assigned the "Bidder" role. Admin and AuctionCreator roles are assigned by administrators.
+                                </small>
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fas fa-user-plus me-2"></i>Sign Up
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12 text-center">
+                <a asp-action="Index" asp-controller="Home" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+
